@@ -1,5 +1,6 @@
 .venv
 .idea
+.env
 tests
 *__pycache__
 terraform/.terraform

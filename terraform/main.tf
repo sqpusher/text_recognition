@@ -26,6 +26,11 @@ resource "aws_iam_policy" "lambda_policy" {
         Action = ["apigateway:POST"],
         Resource = ["arn:aws:apigateway:${var.region}::/restapis/${aws_api_gateway_rest_api.lambda_api.id}/stages/dev/POST/text_recognizer"],
         Effect = "Allow"
+      },
+      {
+        Action   = "textract:DetectDocumentText",
+        Resource = "*",
+        Effect   = "Allow"
       }
     ]
   })
@@ -56,18 +61,27 @@ resource "aws_iam_policy_attachment" "lambda_policy_attachment" {
 
 data "archive_file" "lambda_zip" {
   type = "zip"
-  source_file = "../src/app.py"
+  source_dir = "../src"
   output_path = "text_recognizer_lambda.zip"
 }
 
 resource "aws_lambda_function" "recognizer_lambda_function" {
-        function_name = "lambdaTextRecognizer"
-        filename      = "text_recognizer_lambda.zip"
-        source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-        role          = aws_iam_role.lambda_role.arn
-        runtime       = "python3.9"
-        handler       = "app.lambda_handler"
-        timeout       = 10
+  function_name = "lambdaTextRecognizer"
+  filename      = "text_recognizer_lambda.zip"
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  role          = aws_iam_role.lambda_role.arn
+  runtime       = "python3.9"
+  handler       = "app.lambda_handler"
+  timeout       = 10
+}
+
+resource "aws_lambda_permission" "lambda_api_permission" {
+    statement_id  = "AllowAPIGatewayInvoke"
+    action        = "lambda:InvokeFunction"
+    function_name = aws_lambda_function.recognizer_lambda_function.function_name
+    principal     = "apigateway.amazonaws.com"
+    source_arn    = "arn:aws:execute-api:${var.region}:${var
+    .account_id}:${aws_api_gateway_rest_api.lambda_api.id}/*/*/*"
 }
 
 

@@ -1,11 +1,8 @@
 import base64
 import boto3
-import io
-
-from PIL import Image
 
 
-def extract_text(image):
+def extract_text(image: bytes):
     textract_client = boto3.client('textract', region_name='eu-west-1')
     response = textract_client.detect_document_text(
         Document={
@@ -25,9 +22,8 @@ def extract_text(image):
 
 def read_image(img_string: str):
     img_string = img_string.split('base64,')[-1].strip()
-    image_stream = io.BytesIO(base64.b64decode(img_string))
-    image = Image.open(image_stream)
-    image.save(image_stream, format='PNG')
-    text = extract_text(image_stream.getvalue())
+    image_decoded = base64.b64decode(img_string)
+    image_bytes = bytearray(image_decoded)
+    text = extract_text(image_bytes)
 
     return text
